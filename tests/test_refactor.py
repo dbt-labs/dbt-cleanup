@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from yaml import safe_load
 
+from dbt_autofix.fields_properties_configs import fields_per_node_type
 from dbt_autofix.refactor import (
     SQLRefactorResult,
     YMLRefactorResult,
@@ -12,7 +13,6 @@ from dbt_autofix.refactor import (
     changeset_dbt_project_remove_deprecated_config,
     changeset_refactor_yml_str,
     dict_to_yaml_str,
-    fields_per_node_type,
     rec_check_yaml_path,
     remove_unmatched_endings,
 )

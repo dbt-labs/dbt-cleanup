@@ -1,4 +1,4 @@
-from dbt_autofix.refactor import fields_per_node_type
+from dbt_autofix.fields_properties_configs import fields_per_node_type
 
 
 def test_fields_no_overlap():

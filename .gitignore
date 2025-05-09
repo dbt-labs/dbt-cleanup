@@ -12,3 +12,6 @@ wheels/
 
 # IDE files
 .vscode/launch.json
+
+# special files
+config_resources.csv

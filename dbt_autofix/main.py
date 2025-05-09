@@ -6,6 +6,7 @@ from rich.console import Console
 from typing_extensions import Annotated
 
 from dbt_autofix.duplicate_keys import find_duplicate_keys, print_duplicate_keys
+from dbt_autofix.fields_properties_configs import print_matrix
 from dbt_autofix.refactor import apply_changesets, changeset_all_sql_yml_files
 
 console = Console()
@@ -48,6 +49,11 @@ def refactor_yml(
                 changeset.print_to_console(json_output)
     else:
         apply_changesets(yaml_results, sql_results, json_output)
+
+
+@app.command(hidden=True)
+def print_fields_matrix():
+    print_matrix()
 
 
 if __name__ == "__main__":
