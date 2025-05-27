@@ -100,7 +100,7 @@ def get_specs_from_latest_schema() -> tuple[dict[str, YAMLSpecs], dict[str, DbtP
     )
     dbtproject_specs_metrics = DbtProjectSpecs(
         allowed_config_fields_dbt_project_with_plus=set(
-            dbt_project_schema["definitions"]["MetricConfigs"]["properties"]
+            dbt_project_schema["definitions"]["ProjectMetricConfigs"]["properties"]
         ),
     )
     dbtproject_specs_saved_queries = DbtProjectSpecs(
