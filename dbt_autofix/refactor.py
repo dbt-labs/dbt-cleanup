@@ -328,11 +328,11 @@ def process_yaml_files_except_dbt_project(
                 yml_refactor_result.refactored = True
                 yml_refactor_result.refactored_yaml = changeset_remove_duplicate_keys_result.refactored_yaml
 
-            # changeset_refactor_result = changeset_refactor_yml_str(yml_refactor_result.refactored_yaml, schema_specs)
-            # if changeset_refactor_result.refactored:
-            #     yml_refactor_result.refactors.append(changeset_refactor_result)
-            #     yml_refactor_result.refactored = True
-            #     yml_refactor_result.refactored_yaml = changeset_refactor_result.refactored_yaml
+            changeset_refactor_result = changeset_refactor_yml_str(yml_refactor_result.refactored_yaml, schema_specs)
+            if changeset_refactor_result.refactored:
+                yml_refactor_result.refactors.append(changeset_refactor_result)
+                yml_refactor_result.refactored = True
+                yml_refactor_result.refactored_yaml = changeset_refactor_result.refactored_yaml
 
             changeset_owner_properties_result = changeset_owner_properties_yml_str(
                 yml_refactor_result.refactored_yaml, schema_specs
@@ -568,6 +568,31 @@ def changeset_refactor_yml_str(yml_str: str, schema_specs: SchemaSpecs) -> YMLRu
                     refactored = True
                     yml_dict[node_type][i] = processed_node
                     refactor_logs.extend(node_refactor_logs)
+                
+                if "columns" in node:
+                    for column_i, column in enumerate(node["columns"]):
+                        processed_column, column_refactored, column_refactor_logs = restructure_yaml_keys_for_node(column, "columns", schema_specs)
+                        if column_refactored:
+                            refactored = True
+                            yml_dict[node_type][i]["columns"][column_i] = processed_column
+                            refactor_logs.extend(column_refactor_logs)
+                
+                if "tables" in node:
+                    for table_i, table in enumerate(node["tables"]):
+                        processed_table, table_refactored, table_refactor_logs = restructure_yaml_keys_for_node(table, "tables", schema_specs)
+                        if table_refactored:
+                            refactored = True
+                            yml_dict[node_type][i]["tables"][table_i] = processed_table
+                            refactor_logs.extend(table_refactor_logs)
+
+                        if "columns" in table:
+                            for table_column_i, table_column in enumerate(table["columns"]):
+                                processed_table_column, table_column_refactored, table_column_refactor_logs = restructure_yaml_keys_for_node(table_column, "columns", schema_specs)
+                                if table_column_refactored:
+                                    refactored = True
+                                    yml_dict[node_type][i]["tables"][table_i]["columns"][table_column_i] = processed_table_column
+                                    refactor_logs.extend(table_column_refactor_logs)
+                
 
     # for sources, the config can be set at the table level as well
     if "sources" in yml_dict:

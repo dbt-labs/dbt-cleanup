@@ -254,12 +254,59 @@ tests_allowed_config = AllowedConfig(
     ),
 )
 
+columns_allowed_config = AllowedConfig(
+    allowed_config_fields=set(
+        [
+            "tags",
+            "meta",
+        ]
+    ),
+    allowed_properties=set(
+        [
+            "name",
+            "description",
+            "config",
+            "tests",
+            "data_type",
+            "constraints",
+            "quote",
+            "granularity",
+        ]
+    ),
+)
+
+tables_allowed_config = AllowedConfig(
+    allowed_config_fields=set(
+        [
+            "enabled",
+            "event_time",
+            "meta",
+            "tags",
+            "freshness"
+        ]
+    ),
+    allowed_properties=set(
+        [
+            "name",
+            "description",
+            "identifier",
+            "loaded_at_field",
+            "tests",
+            "quoting",
+            "external",
+            "columns",
+        ]
+    ),
+)
+
 fields_per_node_type = {
     "models": models_allowed_config,
     "seeds": seeds_allowed_config,
     "tests": tests_allowed_config,
     "sources": sources_allowed_config,
     "snapshots": snapshots_allowed_config,
+    "columns": columns_allowed_config,
+    "tables": tables_allowed_config,
 }
 
 
