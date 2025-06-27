@@ -3,18 +3,18 @@
 dbt-autofix automatically scans your dbt project for deprecated configurations and updates them to align with the latest best practices. This makes it easier to resolve deprecation warnings introduced in dbt v1.10 as well as prepare for migration to the dbt Fusion engine.
 
 
-| Deprecation Code in dbt Core      | Files             | Description                                                                                      |
-| --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------ |
-| `CustomKeyInObjectDeprecation` / `PropertyMovedToConfigDeprecation`    | YAML files        | Move all models configs under `config:` in YAML files                                            |
-| `CustomKeyInObjectDeprecation`    | YAML files        | Move all models extra config (not valid or custom) under `meta:` and `meta` under `config:`      |
-| `DuplicateYAMLKeysDeprecation`    | YAML files        | Remove duplicate keys in YAML files, keeping the second one to keep the same behaviour           |
-| -                                 | YAML files        | Only allow email and name as properties for groups and exposures owners                          |
-| `UnexpectedJinjaBlockDeprecation` | SQL files         | Remove extra `{% endmacro %}` and `{% endif %}` that don't have corresponding opening statements |
-| -                                 | `dbt_project.yml` | Prefix all configs for modeles/tests etc... with a `+`                                           |
-| `ConfigDataPathDeprecation`       | `dbt_project.yml` | Remove deprecated config for data path (now seed)                                                |
-| `ConfigLogPathDeprecation`        | `dbt_project.yml` | Remove deprecated config for log path                                                            |
-| `ConfigSourcePathDeprecation`     | `dbt_project.yml` | Remove deprecated config for source path                                                         |
-| `ConfigTargetPathDeprecation`     | `dbt_project.yml` | Remove deprecated config for target path                                                         |
+| Deprecation Code in dbt Core      | Files             | Handling                                                                                         | Support |
+| --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------ | ------- |
+| `CustomKeyInObjectDeprecation` / `PropertyMovedToConfigDeprecation`    | YAML files        | Move all models configs under `config:` in YAML files       |   Full  |
+| `CustomKeyInObjectDeprecation`    | YAML files        | Move all models extra config (not valid or custom) under `meta:` and `meta` under `config:`      |   Full  |
+| `DuplicateYAMLKeysDeprecation`    | YAML files        | Remove duplicate keys in YAML files, keeping the second one to keep the same behaviour           |   Full  |
+| `PropertyMovedToConfigDeprecation`| YAML files        | Only allow email and name as properties for groups and exposures owners                          |   Full  |
+| `UnexpectedJinjaBlockDeprecation` | SQL files         | Remove extra `{% endmacro %}` and `{% endif %}` that don't have corresponding opening statements |   Full  |
+| `GenericJSONSchemaValidationDeprecation` | `dbt_project.yml` | Prefix all configs for models/tests etc... with a `+`                                     | Partial |
+| `ConfigDataPathDeprecation`       | `dbt_project.yml` | Remove deprecated config for data path (now seed)                                                |   Full  |
+| `ConfigLogPathDeprecation`        | `dbt_project.yml` | Remove deprecated config for log path                                                            |   Full  |
+| `ConfigSourcePathDeprecation`     | `dbt_project.yml` | Remove deprecated config for source path                                                         |   Full  |
+| `ConfigTargetPathDeprecation`     | `dbt_project.yml` | Remove deprecated config for target path                                                         |   Full  |
 
 ## Installation
 

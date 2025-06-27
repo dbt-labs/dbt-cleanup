@@ -79,11 +79,13 @@ class YMLRuleRefactorResult:
     refactored_yaml: str
     original_yaml: str
     refactor_logs: list[str]
+    dbt_deprecation_classes: list[str]
 
     def to_dict(self) -> dict:
         ret_dict = {
             "rule_name": self.rule_name,
             "refactor_logs": self.refactor_logs,
+            "dbt_deprecation_classes": self.dbt_deprecation_classes
         }
         return ret_dict
 
@@ -132,6 +134,7 @@ class SQLRuleRefactorResult:
     refactored_content: str
     original_content: str
     refactor_logs: list[str]
+    dbt_deprecation_classes: list[str]
 
     def to_dict(self) -> dict:
         ret_dict = {
@@ -331,6 +334,7 @@ def changeset_remove_tab_only_lines(yml_str: str) -> YMLRuleRefactorResult:
 
     return YMLRuleRefactorResult(
         rule_name="remove_tab_only_lines",
+        dbt_deprecation_classes=[],
         refactored=refactored,
         refactored_yaml=refactored_yaml,
         original_yaml=yml_str,
@@ -506,6 +510,7 @@ def process_sql_files(
                                 refactored_content=new_content,
                                 original_content=content,
                                 refactor_logs=logs,
+                                dbt_deprecation_classes=["UnexpectedJinjaBlockDeprecation"]
                             )
                         ],
                     )
@@ -675,6 +680,7 @@ def changeset_owner_properties_yml_str(yml_str: str, schema_specs: SchemaSpecs) 
 
     return YMLRuleRefactorResult(
         rule_name="restructure_owner_properties",
+        dbt_deprecation_classes=["CustomKeyInObjectDeprecation"],
         refactored=refactored,
         refactored_yaml=dict_to_yaml_str(yml_dict) if refactored else yml_str,
         original_yaml=yml_str,
@@ -791,6 +797,7 @@ def changeset_refactor_yml_str(yml_str: str, schema_specs: SchemaSpecs) -> YMLRu
 
     return YMLRuleRefactorResult(
         rule_name="restructure_yaml_keys",
+        dbt_deprecation_classes=["CustomKeyInConfigDeprecation"],
         refactored=refactored,
         refactored_yaml=dict_to_yaml_str(yml_dict) if refactored else yml_str,
         original_yaml=yml_str,
@@ -820,6 +827,7 @@ def changeset_remove_extra_tabs(yml_str: str) -> YMLRuleRefactorResult:
 
     return YMLRuleRefactorResult(
         rule_name="remove_extra_tabs",
+        dbt_deprecation_classes=[],
         refactored=refactored,
         refactored_yaml=refactored_yaml,
         original_yaml=yml_str,
@@ -850,6 +858,7 @@ def changeset_remove_duplicate_keys(yml_str: str) -> YMLRuleRefactorResult:
 
     return YMLRuleRefactorResult(
         rule_name="remove_duplicate_keys",
+        dbt_deprecation_classes=["DuplicateYAMLKeysDeprecation"],
         refactored=refactored,
         refactored_yaml=refactored_yaml,
         original_yaml=yml_str,
@@ -889,6 +898,7 @@ def changeset_remove_indentation_version(yml_str: str) -> YMLRuleRefactorResult:
 
     return YMLRuleRefactorResult(
         rule_name="removed_extra_indentation",
+        dbt_deprecation_classes=[],
         refactored=refactored,
         refactored_yaml=refactored_yaml,
         original_yaml=yml_str,
@@ -902,6 +912,7 @@ def changeset_dbt_project_remove_deprecated_config(
     """Remove deprecated keys"""
     refactored = False
     refactor_logs: List[str] = []
+    dbt_deprecation_classes: List[str] = []
 
     dict_deprecated_fields_with_defaults = {
         "log-path": "logs",
@@ -913,6 +924,13 @@ def changeset_dbt_project_remove_deprecated_config(
         "source-paths": "model-paths",
     }
 
+    dict_fields_to_deprecation_class = {
+        "log-path": "ConfigLogPathDeprecation",
+        "target-path": "ConfigTargetPathDeprecation",
+        "data-paths": "ConfigDataPathDeprecation",
+        "source-paths": "ConfigSourcePathDeprecation",
+    }
+
     yml_dict = DbtYAML().load(yml_str) or {}
 
     for deprecated_field, _ in dict_deprecated_fields_with_defaults.items():
@@ -921,6 +939,7 @@ def changeset_dbt_project_remove_deprecated_config(
                 # by default we remove it
                 refactored = True
                 refactor_logs.append(f"Removed the deprecated field '{deprecated_field}'")
+                dbt_deprecation_classes.append(dict_fields_to_deprecation_class[deprecated_field])
                 del yml_dict[deprecated_field]
             # with the special field, we only remove it if it's different from the default
             elif yml_dict[deprecated_field] != dict_deprecated_fields_with_defaults[deprecated_field]:
@@ -928,6 +947,7 @@ def changeset_dbt_project_remove_deprecated_config(
                 refactor_logs.append(
                     f"Removed the deprecated field '{deprecated_field}' that wasn't set to the default value"
                 )
+                dbt_deprecation_classes.append(dict_fields_to_deprecation_class[deprecated_field])
                 del yml_dict[deprecated_field]
 
     # TODO: add tests for this
@@ -936,14 +956,17 @@ def changeset_dbt_project_remove_deprecated_config(
             refactored = True
             if new_field not in yml_dict:
                 refactor_logs.append(f"Renamed the deprecated field '{deprecated_field}' to '{new_field}'")
+                dbt_deprecation_classes.append(dict_fields_to_deprecation_class[deprecated_field])
                 yml_dict[new_field] = yml_dict[deprecated_field]
             else:
                 refactor_logs.append(f"Added the config of the deprecated field '{deprecated_field}' to '{new_field}'")
+                dbt_deprecation_classes.append(dict_fields_to_deprecation_class[deprecated_field])
                 yml_dict[new_field] = yml_dict[new_field] + yml_dict[deprecated_field]
             del yml_dict[deprecated_field]
 
     return YMLRuleRefactorResult(
         rule_name="remove_deprecated_config",
+        dbt_deprecation_classes=dbt_deprecation_classes,
         refactored=refactored,
         refactored_yaml=DbtYAML().dump_to_string(yml_dict) if refactored else yml_str,  # type: ignore
         original_yaml=yml_str,
@@ -1015,6 +1038,7 @@ def changeset_dbt_project_prefix_plus_for_config(
     refactored = len(all_refactor_logs) > 0
     return YMLRuleRefactorResult(
         rule_name="prefix_plus_for_config",
+        dbt_deprecation_classes=["GenericJSONSchemaValidationDeprecation"],
         refactored=refactored,
         refactored_yaml=DbtYAML().dump_to_string(yml_dict) if refactored else yml_str,  # type: ignore
         original_yaml=yml_str,
