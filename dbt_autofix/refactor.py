@@ -958,27 +958,39 @@ def rec_check_yaml_path(
     refactor_logs: Optional[List[str]] = None,
 ):
     # we can't set refactor_logs as an empty list
+    refactor_logs = [] if refactor_logs is None else refactor_logs
 
     # TODO: what about individual models in the config there?
     # indivdual models would show up here but without the `.sql` (or `.py`)
     if not path.exists():
         return yml_dict, [] if refactor_logs is None else refactor_logs
 
+    renamed_configs = {
+        "target_schema": "+schema",
+        "target_database": "+database",
+    }
+
     yml_dict_copy = yml_dict.copy() if yml_dict else {}
     for k, v in yml_dict_copy.items():
-        if k in node_fields.allowed_config_fields_dbt_project and not (path / k).exists():
+        # No need to update valid filesystem paths
+        if (path / k).exists():
+            if isinstance(yml_dict[k], dict):
+                new_dict, refactor_logs = rec_check_yaml_path(yml_dict[k], path / k, node_fields, refactor_logs)
+                yml_dict[k] = new_dict
+        # Renamed config
+        elif k.strip("+") in renamed_configs:
+            new_k = renamed_configs[k.strip("+")]
+            yml_dict[new_k] = v
+            refactor_logs.append(f"Renamed '{k}' to '{new_k}'")
+            del yml_dict[k]
+        # Valid config, just missing "+"
+        elif k in node_fields.allowed_config_fields_dbt_project:
             new_k = f"+{k}"
             yml_dict[new_k] = v
-            log_msg = f"Added '+' in front of the nested config '{k}'"
-            if refactor_logs is None:
-                refactor_logs = [log_msg]
-            else:
-                refactor_logs.append(log_msg)
+            refactor_logs.append(f"Added '+' in front of the nested config '{k}'")
             del yml_dict[k]
-        elif isinstance(yml_dict[k], dict):
-            new_dict, refactor_logs = rec_check_yaml_path(yml_dict[k], path / k, node_fields, refactor_logs)
-            yml_dict[k] = new_dict
-    return yml_dict, [] if refactor_logs is None else refactor_logs
+
+    return yml_dict, refactor_logs
 
 
 def changeset_dbt_project_prefix_plus_for_config(
