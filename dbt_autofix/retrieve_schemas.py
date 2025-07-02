@@ -11,6 +11,7 @@ import httpx
 class YAMLSpecs:
     allowed_config_fields: set[str]
     allowed_properties: set[str]
+    renamed_config_fields: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         self.allowed_config_fields_without_meta = self.allowed_config_fields - {"meta"}
@@ -56,6 +57,10 @@ class SchemaSpecs:
         yaml_specs_snapshots = YAMLSpecs(
             allowed_config_fields=set(yml_schema["definitions"][snapshot_config_field_name]["properties"]),
             allowed_properties=set(yml_schema["definitions"][snapshot_property_field_name]["properties"]),
+            renamed_config_fields={
+                "target_schema": "schema",
+                "target_database": "database"
+            }
         )
         seed_property_field_name, seed_config_field_name = self._get_yml_schema_fields(yml_schema, "seeds")
         yaml_specs_seeds = YAMLSpecs(
