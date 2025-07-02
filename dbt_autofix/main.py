@@ -48,10 +48,15 @@ def refactor_yml(  # noqa: PLR0913
     select: Annotated[
         Optional[List[str]], typer.Option("--select", "-s", help="Select specific paths to refactor")
     ] = None,
+    include_packages: Annotated[
+        bool, typer.Option("--include-packages", "-i", help="Include packages in the refactoring")
+    ] = False,
 ):
     schema_specs = SchemaSpecs(json_schema_version)
 
-    changesets = changeset_all_sql_yml_files(path, schema_specs, dry_run, exclude_dbt_project_keys, select)
+    changesets = changeset_all_sql_yml_files(
+        path, schema_specs, dry_run, exclude_dbt_project_keys, select, include_packages
+    )
     yaml_results, sql_results = changesets
     if dry_run:
         if not json_output:

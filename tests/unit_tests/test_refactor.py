@@ -1644,7 +1644,7 @@ models:
 """
         result = changeset_remove_extra_tabs(input_yaml)
         assert result.refactored
-        assert len(result.refactor_logs) == 1
+        assert len(result.refactor_logs) == 2  # Two tab characters found
         lines = result.refactored_yaml.split("\n")
         assert lines[4] == '    description: "A test model"'
 
@@ -1675,10 +1675,11 @@ models:
 """
         result = changeset_remove_extra_tabs(input_yaml)
         assert result.refactored
-        assert len(result.refactor_logs) == 1
+        assert len(result.refactor_logs) == 2  # Two tab characters found
         assert "Found extra tabs: line 5 - column 1" in result.refactor_logs[0]
+        assert "Found extra tabs: line 5 - column 3" in result.refactor_logs[1]
         lines = result.refactored_yaml.split("\n")
-        assert lines[4] == "  \t"  # first tab replaced, second remains
+        assert lines[4] == "    "  # both tabs replaced with spaces
 
     def test_tab_with_comments(self):
         input_yaml = """
@@ -1725,28 +1726,9 @@ models:
 """
         result = changeset_remove_extra_tabs(input_yaml)
         assert result.refactored
-        assert len(result.refactor_logs) == 1
+        assert len(result.refactor_logs) == 2  # Two tab characters found
         lines = result.refactored_yaml.split("\n")
         assert lines[5] == "      materialized: table"  # 6 spaces (tab+4 spaces)
-
-    def test_iterative_tab_removal(self):
-        input_yaml = """
-version: 2
-models:
-  - name: test_model
-\t  description: "A test model"
-\t    columns:
-      - name: id
-"""
-        result1 = changeset_remove_extra_tabs(input_yaml)
-        assert result1.refactored
-        assert len(result1.refactor_logs) == 1
-        result2 = changeset_remove_extra_tabs(result1.refactored_yaml)
-        assert result2.refactored
-        assert len(result2.refactor_logs) == 1
-        lines = result2.refactored_yaml.split("\n")
-        assert lines[4] == '    description: "A test model"'
-        assert lines[5] == "      columns:"
 
 
 class TestRemoveDuplicateKeys:
