@@ -962,7 +962,7 @@ def rec_check_yaml_path(
     # TODO: what about individual models in the config there?
     # indivdual models would show up here but without the `.sql` (or `.py`)
     if not path.exists():
-        return yml_dict, [] if refactor_logs is None else refactor_logs
+        return yml_dict, refactor_logs
 
     yml_dict_copy = yml_dict.copy() if yml_dict else {}
     for k, v in yml_dict_copy.items():
