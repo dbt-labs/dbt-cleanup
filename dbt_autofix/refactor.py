@@ -591,8 +591,8 @@ def restructure_yaml_keys_for_node(
             refactored = True
             new_name = schema_specs.yaml_specs_per_node_type[node_type].renamed_config_fields[config_field]
             refactor_logs.append(
-                    f"{pretty_node_type} '{node.get('name', '')}' - Config field '{config_field}' has been renamed to '{new_name}."
-                )
+                f"{pretty_node_type} '{node.get('name', '')}' - Config field '{config_field}' has been renamed to '{new_name}'."
+            )
             node["config"][new_name] = node["config"][config_field]
             del node["config"][config_field]
 
@@ -854,7 +854,6 @@ def changeset_remove_duplicate_keys(yml_str: str) -> YMLRuleRefactorResult:
         import yaml
 
         # we use dump from ruamel to keep indentation style but this loses quite a bit of formatting though
-        # breakpoint()
         refactored_yaml = DbtYAML().dump_to_string(yaml.safe_load(yml_str))  # type: ignore
     else:
         refactored_yaml = yml_str
