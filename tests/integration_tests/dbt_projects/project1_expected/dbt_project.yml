@@ -32,3 +32,11 @@ models:
     # Config indicated by + and applies to all files under models/example/
     example:
       +materialized: view
+
+snapshots:
+  dbt_autofix_tests:
+    example:
+      +database: database
+      +schema: schema
+  +database: database
+  +schema: schema
