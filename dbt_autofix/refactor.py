@@ -1005,10 +1005,10 @@ def changeset_dbt_project_prefix_plus_for_config(
 
             # top level config - apply renaming
             elif k.strip("+") in node_fields.renamed_config_fields_dbt_project:
-                all_refactor_logs.append(f"Renamed '{k}' to '{new_k}")
                 new_k = node_fields.renamed_config_fields_dbt_project[k.strip("+")]
-                yml_dict[new_k] = v
-                del yml_dict[k]
+                all_refactor_logs.append(f"Renamed '{k}' to '{new_k}")
+                yml_dict[node_type][new_k] = v
+                del yml_dict[node_type][k]
 
             # top level config - prefix with '+'
             elif k in node_fields.allowed_config_fields_dbt_project:
