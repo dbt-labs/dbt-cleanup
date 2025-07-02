@@ -585,6 +585,17 @@ def restructure_yaml_keys_for_node(
             node["config"] = {"meta": node_meta}
             del node[field]
 
+    copy_node_config = node.get("config", {}).copy()
+    for config_field in copy_node_config:
+        if config_field in schema_specs.yaml_specs_per_node_type[node_type].renamed_config_fields:
+            refactored = True
+            new_name = schema_specs.yaml_specs_per_node_type[node_type].renamed_config_fields[config_field]
+            refactor_logs.append(
+                    f"{pretty_node_type} '{node.get('name', '')}' - Config field '{config_field}' has been renamed to '{new_name}."
+                )
+            node["config"][new_name] = node["config"][config_field]
+            del node["config"][config_field]
+
     if existing_meta:
         refactored = True
         refactor_logs.append(
