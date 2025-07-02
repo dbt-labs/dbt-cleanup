@@ -957,7 +957,6 @@ def rec_check_yaml_path(
     node_fields: DbtProjectSpecs,
     refactor_logs: Optional[List[str]] = None,
 ):
-    # we can't set refactor_logs as an empty list
     refactor_logs = [] if refactor_logs is None else refactor_logs
 
     # TODO: what about individual models in the config there?
@@ -965,21 +964,16 @@ def rec_check_yaml_path(
     if not path.exists():
         return yml_dict, [] if refactor_logs is None else refactor_logs
 
-    renamed_configs = {
-        "target_schema": "+schema",
-        "target_database": "+database",
-    }
-
     yml_dict_copy = yml_dict.copy() if yml_dict else {}
     for k, v in yml_dict_copy.items():
-        # No need to update valid filesystem paths
+        # No need to update valid filesystem path keys
         if (path / k).exists():
             if isinstance(yml_dict[k], dict):
                 new_dict, refactor_logs = rec_check_yaml_path(yml_dict[k], path / k, node_fields, refactor_logs)
                 yml_dict[k] = new_dict
-        # Renamed config
-        elif k.strip("+") in renamed_configs:
-            new_k = renamed_configs[k.strip("+")]
+        # Apply config renaming
+        elif k.strip("+") in node_fields.renamed_config_fields_dbt_project:
+            new_k = node_fields.renamed_config_fields_dbt_project[k.strip("+")]
             yml_dict[new_k] = v
             refactor_logs.append(f"Renamed '{k}' to '{new_k}'")
             del yml_dict[k]
@@ -996,7 +990,7 @@ def rec_check_yaml_path(
 def changeset_dbt_project_prefix_plus_for_config(
     yml_str: str, path: Path, schema_specs: SchemaSpecs
 ) -> YMLRuleRefactorResult:
-    """Update keys for the config in dbt_project.yml under to prefix it with a `+`"""
+    """Update keys for the config in dbt_project.yml under to prefix it with a `+` or apply config renames"""
     all_refactor_logs: List[str] = []
 
     yml_dict = DbtYAML().load(yml_str) or {}

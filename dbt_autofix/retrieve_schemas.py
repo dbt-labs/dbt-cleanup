@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 import httpx
@@ -19,6 +19,7 @@ class YAMLSpecs:
 @dataclass
 class DbtProjectSpecs:
     allowed_config_fields_dbt_project_with_plus: set[str]
+    renamed_config_fields_dbt_project: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         self.allowed_config_fields_dbt_project = set(
@@ -102,6 +103,10 @@ class SchemaSpecs:
             allowed_config_fields_dbt_project_with_plus=set(
                 dbt_project_schema["definitions"][snapshot_property_field_name_dbt_project]["properties"]
             ),
+            renamed_config_fields_dbt_project={
+                "target_schema": "+schema",
+                "target_database": "+database"
+            }
         )
         seed_property_field_name_dbt_project = self._get_dbt_project_schema_fields(dbt_project_schema, "seeds")
         dbtproject_specs_seeds = DbtProjectSpecs(
