@@ -2,6 +2,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+import re
 
 import httpx
 from rich.console import Console
@@ -56,25 +57,39 @@ def job_steps_updated(job_dict: dict) -> tuple[bool, List[str]]:
     updated_steps = exec_steps.copy()
     steps_changed = False
 
+    update_step_rules = [
+        step_regex_replace_m_with_s,
+        step_remove_output,
+    ]
+
     for i, step in enumerate(updated_steps):
         if isinstance(step, str):
-            new_step = step_regex_replace(step)
 
-            if new_step != step:
-                steps_changed = True
-                updated_steps[i] = new_step
+            for update_step_fn in update_step_rules:
+                new_step = update_step_fn(step)
+
+                if new_step != step:
+                    steps_changed = True
+                    updated_steps[i] = new_step
 
     return steps_changed, updated_steps
 
 
-def step_regex_replace(step: str) -> str:
+def step_regex_replace_m_with_s(step: str) -> str:
     """
     Replace -m with -s and --model/--models with --select.
     """
-    import re
-
     step = re.sub(r"(\s)-m(\s)", r"\1-s\2", step)
     step = re.sub(r"(\s)--model[s]?(\s)", r"\1--select\2", step)
+    return step
+
+def step_remove_output(step: str) -> str:
+    """
+    Remove --output in source freshness commands.
+    """
+    if step.startswith("dbt source freshness"):
+        step = re.sub(r"(\s)-o(\s+)\S+", "", step)
+        step = re.sub(r"(\s)--output(\s+)\S+", "", step)
     return step
 
 

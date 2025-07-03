@@ -3,6 +3,10 @@
 dbt-autofix automatically scans your dbt project for deprecated configurations and updates them to align with the latest best practices. This makes it easier to resolve deprecation warnings introduced in dbt v1.10 as well as prepare for migration to the dbt Fusion engine.
 
 
+## Deprecation Coverage - Project Files
+
+The following deprecations are covered by `dbt-autofix deprecations`:
+
 | Deprecation Code in dbt Core      | Files             | Handling                                                                                         | Support |
 | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------ | ------- |
 | `CustomKeyInObjectDeprecation` / `PropertyMovedToConfigDeprecation`    | YAML files        | Move all models configs under `config:` in YAML files       |   Full  |
@@ -15,6 +19,17 @@ dbt-autofix automatically scans your dbt project for deprecated configurations a
 | `ConfigLogPathDeprecation`        | `dbt_project.yml` | Remove deprecated config for log path                                                            |   Full  |
 | `ConfigSourcePathDeprecation`     | `dbt_project.yml` | Remove deprecated config for source path                                                         |   Full  |
 | `ConfigTargetPathDeprecation`     | `dbt_project.yml` | Remove deprecated config for target path                                                         |   Full  |
+
+
+## Deprecation Coverage - CLI Commands
+
+The following deprecations are covered by `dbt-autofix jobs`:
+
+| Deprecation Code in dbt                        | Handling                              | Support |
+| ---------------------------------------------- | ------------------------------------- | ------- |
+| `ModelParamUsageDeprecation`                   | Replace -m/--model with -s/--select   |   Full  |
+| `CustomOutputPathInSourceFreshnessDeprecation` | Remove -o/--output usage in `dbt source freshness` commands              |   Full  |
+
 
 ## Installation
 
