@@ -9,6 +9,7 @@ from dbt_autofix.refactor import (
     YMLRefactorResult,
     YMLRuleRefactorResult,
     changeset_all_sql_yml_files,
+    changeset_dbt_project_prefix_plus_for_config,
     changeset_dbt_project_remove_deprecated_config,
     changeset_owner_properties_yml_str,
     changeset_refactor_yml_str,
@@ -823,6 +824,35 @@ sources:
         assert created_at_column["config"]["meta"]["is_timestamp"] is True
         assert created_at_column["tests"] == ["not_null"]
 
+    def test_changeset_refactor_yml_with_snapshot_config_rename(
+        self, temp_project_dir: Path, schema_specs: SchemaSpecs
+    ):
+        input_yaml = """
+snapshots:
+  - name: test_snapshot
+    config:
+      target_schema: schema
+      target_database: database
+"""
+        result = changeset_refactor_yml_str(input_yaml, schema_specs)
+        assert result.refactored
+        assert isinstance(result, YMLRuleRefactorResult)
+
+        # Expect 2 logs - one for target_schema, one for target_database
+        assert len(result.refactor_logs) == 2
+        assert any(
+            "Snapshot 'test_snapshot' - Config field 'target_schema' has been renamed to 'schema'" in log
+            for log in result.refactor_logs
+        )
+        assert any(
+            "Snapshot 'test_snapshot' - Config field 'target_database' has been renamed to 'database'" in log
+            for log in result.refactor_logs
+        )
+
+        snapshot = safe_load(result.refactored_yaml)["snapshots"][0]
+        assert snapshot["name"] == "test_snapshot"
+        assert snapshot["config"] == {"schema": "schema", "database": "database"}
+
 
 class TestYamlOutput:
     """Tests for YAML output functions"""
@@ -847,7 +877,7 @@ class TestYamlOutput:
         assert "abc: 123" in yaml_str
 
 
-class TestDbtProjectYAMLPusPrefix:
+class TestDbtProjectYAMLPlusPrefix:
     """Tests for YAML output functions"""
 
     def test_check_project(self, temp_project_dir: Path, schema_specs: SchemaSpecs):
@@ -913,6 +943,38 @@ class TestDbtProjectYAMLPusPrefix:
         )
         assert expected_data == new_yml
         assert len(refactor_logs) == 0
+
+
+class TestDbtProjectYAMLRenameConfigs:
+    """Tests for YAML output functions"""
+
+    def test_check_project(self, temp_project_dir: Path, schema_specs: SchemaSpecs):
+        # Test that output_yaml produces valid YAML
+
+        yml_str = """
+        name: test_project
+
+        snapshots:
+          target_schema: schema
+          +target_database: database
+          test_project:
+            example: 
+              target_schema: schema
+              +target_database: database
+        """
+
+        # Create snapshots/example directory
+        snapshots_dir = temp_project_dir / "snapshots" / "example"
+        snapshots_dir.mkdir(parents=True, exist_ok=True)
+
+        result = changeset_dbt_project_prefix_plus_for_config(yml_str, temp_project_dir, schema_specs)
+
+        refactored_snapshots = safe_load(result.refactored_yaml)["snapshots"]
+        assert refactored_snapshots == {
+            "test_project": {"example": {"+schema": "schema", "+database": "database"}},
+            "+schema": "schema",
+            "+database": "database",
+        }
 
 
 class TestDbtProjectRemoveDeprecated:

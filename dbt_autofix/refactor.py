@@ -590,6 +590,17 @@ def restructure_yaml_keys_for_node(
             node["config"] = {"meta": node_meta}
             del node[field]
 
+    copy_node_config = node.get("config", {}).copy()
+    for config_field in copy_node_config:
+        if config_field in schema_specs.yaml_specs_per_node_type[node_type].renamed_config_fields:
+            refactored = True
+            new_name = schema_specs.yaml_specs_per_node_type[node_type].renamed_config_fields[config_field]
+            refactor_logs.append(
+                f"{pretty_node_type} '{node.get('name', '')}' - Config field '{config_field}' has been renamed to '{new_name}'."
+            )
+            node["config"][new_name] = node["config"][config_field]
+            del node["config"][config_field]
+
     if existing_meta:
         refactored = True
         refactor_logs.append(
@@ -987,34 +998,40 @@ def rec_check_yaml_path(
     node_fields: DbtProjectSpecs,
     refactor_logs: Optional[List[str]] = None,
 ):
-    # we can't set refactor_logs as an empty list
+    refactor_logs = [] if refactor_logs is None else refactor_logs
 
     # TODO: what about individual models in the config there?
     # indivdual models would show up here but without the `.sql` (or `.py`)
     if not path.exists():
-        return yml_dict, [] if refactor_logs is None else refactor_logs
+        return yml_dict, refactor_logs
 
     yml_dict_copy = yml_dict.copy() if yml_dict else {}
     for k, v in yml_dict_copy.items():
-        if k in node_fields.allowed_config_fields_dbt_project and not (path / k).exists():
+        # No need to update valid filesystem path keys
+        if (path / k).exists():
+            if isinstance(yml_dict[k], dict):
+                new_dict, refactor_logs = rec_check_yaml_path(yml_dict[k], path / k, node_fields, refactor_logs)
+                yml_dict[k] = new_dict
+        # Apply config renaming
+        elif k.strip("+") in node_fields.renamed_config_fields_dbt_project:
+            new_k = node_fields.renamed_config_fields_dbt_project[k.strip("+")]
+            yml_dict[new_k] = v
+            refactor_logs.append(f"Renamed '{k}' to '{new_k}'")
+            del yml_dict[k]
+        # Valid config, just missing "+"
+        elif k in node_fields.allowed_config_fields_dbt_project:
             new_k = f"+{k}"
             yml_dict[new_k] = v
-            log_msg = f"Added '+' in front of the nested config '{k}'"
-            if refactor_logs is None:
-                refactor_logs = [log_msg]
-            else:
-                refactor_logs.append(log_msg)
+            refactor_logs.append(f"Added '+' in front of the nested config '{k}'")
             del yml_dict[k]
-        elif isinstance(yml_dict[k], dict):
-            new_dict, refactor_logs = rec_check_yaml_path(yml_dict[k], path / k, node_fields, refactor_logs)
-            yml_dict[k] = new_dict
-    return yml_dict, [] if refactor_logs is None else refactor_logs
+
+    return yml_dict, refactor_logs
 
 
 def changeset_dbt_project_prefix_plus_for_config(
     yml_str: str, path: Path, schema_specs: SchemaSpecs
 ) -> YMLRuleRefactorResult:
-    """Update keys for the config in dbt_project.yml under to prefix it with a `+`"""
+    """Update keys for the config in dbt_project.yml under to prefix it with a `+` or apply config renames"""
     all_refactor_logs: List[str] = []
 
     yml_dict = DbtYAML().load(yml_str) or {}
@@ -1027,7 +1044,14 @@ def changeset_dbt_project_prefix_plus_for_config(
                 yml_dict[node_type][k] = new_dict
                 all_refactor_logs.extend(refactor_logs)
 
-            # top level config
+            # top level config - apply renaming
+            elif k.strip("+") in node_fields.renamed_config_fields_dbt_project:
+                new_k = node_fields.renamed_config_fields_dbt_project[k.strip("+")]
+                all_refactor_logs.append(f"Renamed '{k}' to '{new_k}")
+                yml_dict[node_type][new_k] = v
+                del yml_dict[node_type][k]
+
+            # top level config - prefix with '+'
             elif k in node_fields.allowed_config_fields_dbt_project:
                 all_refactor_logs.append(f"Added '+' in front of top level config '{k}'")
                 new_k = f"+{k}"

@@ -34,3 +34,11 @@ models:
     # Config indicated by + and applies to all files under models/example/
     example:
       materialized: view
+
+snapshots:
+  +target_database: database
+  target_schema: schema
+  dbt_autofix_tests:
+    example:
+      target_database: database
+      +target_schema: schema
