@@ -226,10 +226,10 @@ class TestUnmatchedEndingsRemoval:
         {% endmacro %}
         where x = 1
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% endmacro %}" not in result
-        assert len(logs) == 1
-        assert "Removed unmatched {% endmacro %}" in logs[0]
+        result = remove_unmatched_endings(sql_content)
+        assert "{% endmacro %}" not in result.refactored_content
+        assert len(result.refactor_logs) == 1
+        assert "Removed unmatched {% endmacro %}" in result.refactor_logs[0]
 
     def test_basic_unmatched_endif(self):
         sql_content = """
@@ -238,10 +238,10 @@ class TestUnmatchedEndingsRemoval:
         {% endif %}
         where x = 1
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% endif %}" not in result
-        assert len(logs) == 1
-        assert "Removed unmatched {% endif %}" in logs[0]
+        result = remove_unmatched_endings(sql_content)
+        assert "{% endif %}" not in result.refactored_content
+        assert len(result.refactor_logs) == 1
+        assert "Removed unmatched {% endif %}" in result.refactor_logs[0]
 
     def test_matched_macro(self):
         sql_content = """
@@ -250,10 +250,10 @@ class TestUnmatchedEndingsRemoval:
         from my_table
         {% endmacro %}
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% macro my_macro() %}" in result
-        assert "{% endmacro %}" in result
-        assert len(logs) == 0
+        result = remove_unmatched_endings(sql_content)
+        assert "{% macro my_macro() %}" in result.refactored_content
+        assert "{% endmacro %}" in result.refactored_content
+        assert len(result.refactor_logs) == 0
 
     def test_matched_if(self):
         sql_content = """
@@ -262,10 +262,10 @@ class TestUnmatchedEndingsRemoval:
         from my_table
         {% endif %}
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "if condition" in result
-        assert "{% endif %}" in result
-        assert len(logs) == 0
+        result = remove_unmatched_endings(sql_content)
+        assert "if condition" in result.refactored_content
+        assert "{% endif %}" in result.refactored_content
+        assert len(result.refactor_logs) == 0
 
     def test_matched_if_with_parenthesis(self):
         sql_content = """
@@ -274,10 +274,10 @@ class TestUnmatchedEndingsRemoval:
         from my_table
         {% endif %}
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "if(condition)" in result
-        assert "{% endif %}" in result
-        assert len(logs) == 0
+        result = remove_unmatched_endings(sql_content)
+        assert "if(condition)" in result.refactored_content
+        assert "{% endif %}" in result.refactored_content
+        assert len(result.refactor_logs) == 0
 
     def test_matched_if_with_macro_in_name(self):
         sql_content = """
@@ -286,10 +286,10 @@ class TestUnmatchedEndingsRemoval:
         from my_table
         {% endif %}
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "if(macro_test)" in result
-        assert "{% endif %}" in result
-        assert len(logs) == 0
+        result = remove_unmatched_endings(sql_content)
+        assert "if(macro_test)" in result.refactored_content
+        assert "{% endif %}" in result.refactored_content
+        assert len(result.refactor_logs) == 0
 
     def test_nested_structures(self):
         sql_content = """
@@ -302,18 +302,18 @@ class TestUnmatchedEndingsRemoval:
         {% endif %}  -- This one is unmatched
         {% endmacro %}  -- This one is unmatched
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% macro outer_macro() %}" in result
-        assert "{% if condition %}" in result
-        assert len(logs) == 2
-        assert any("Removed unmatched {% endif %}" in log for log in logs)
-        assert any("Removed unmatched {% endmacro %}" in log for log in logs)
+        result = remove_unmatched_endings(sql_content)
+        assert "{% macro outer_macro() %}" in result.refactored_content
+        assert "{% if condition %}" in result.refactored_content
+        assert len(result.refactor_logs) == 2
+        assert any("Removed unmatched {% endif %}" in log for log in result.refactor_logs)
+        assert any("Removed unmatched {% endmacro %}" in log for log in result.refactor_logs)
 
     def test_empty_and_no_tags(self):
         # Empty content
-        result, logs = remove_unmatched_endings("")
-        assert result == ""
-        assert len(logs) == 0
+        result = remove_unmatched_endings("")
+        assert result.refactored_content == ""
+        assert len(result.refactor_logs) == 0
 
         # No Jinja tags
         sql_content = """
@@ -321,9 +321,9 @@ class TestUnmatchedEndingsRemoval:
         from my_table
         where x = 1
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert result.strip() == sql_content.strip()
-        assert len(logs) == 0
+        result = remove_unmatched_endings(sql_content)
+        assert result.refactored_content.strip() == sql_content.strip()
+        assert len(result.refactor_logs) == 0
 
     def test_multiline_tags(self):
         sql_content = """
@@ -334,10 +334,10 @@ class TestUnmatchedEndingsRemoval:
          %}
         where x = 1
         """
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "endmacro" not in result
-        assert len(logs) == 1
-        assert "Removed unmatched {% endmacro %}" in logs[0]
+        result = remove_unmatched_endings(sql_content)
+        assert "endmacro" not in result.refactored_content
+        assert len(result.refactor_logs) == 1
+        assert "Removed unmatched {% endmacro %}" in result.refactor_logs[0]
 
     def test_whitespace_control(self):
         test_cases = [
@@ -354,31 +354,31 @@ class TestUnmatchedEndingsRemoval:
         ]
 
         for content in test_cases:
-            result, logs = remove_unmatched_endings(content)
-            assert "endmacro" not in result or ("{% if condition %}" in content and "{% endmacro %}" not in result)
+            result = remove_unmatched_endings(content)
+            assert "endmacro" not in result.refactored_content or ("{% if condition %}" in content and "{% endmacro %}" not in result.refactored_content)
             if "endmacro" in content and "if condition" not in content:
-                assert len(logs) == 1
-                assert "Removed unmatched {% endmacro %}" in logs[0]
+                assert len(result.refactor_logs) == 1
+                assert "Removed unmatched {% endmacro %}" in result.refactor_logs[0]
 
     def test_line_numbers(self):
         # Single line
         sql_content = "{% macro test() %}select 1{% endmacro %}{% endif %}"
-        _, logs = remove_unmatched_endings(sql_content)
+        logs = remove_unmatched_endings(sql_content).refactor_logs
         assert logs[0] == "Removed unmatched {% endif %} near line 1"
 
         # No leading newline
         sql_content = "{% macro test() %}\nselect 1\n{% endmacro %}\n{% endif %}"
-        _, logs = remove_unmatched_endings(sql_content)
+        logs = remove_unmatched_endings(sql_content).refactor_logs
         assert logs[0] == "Removed unmatched {% endif %} near line 4"
 
         # With leading newline
         sql_content = "\n{% macro test() %}\nselect 1\n{% endmacro %}\n{% endif %}"
-        _, logs = remove_unmatched_endings(sql_content)
+        logs = remove_unmatched_endings(sql_content).refactor_logs
         assert logs[0] == "Removed unmatched {% endif %} near line 5"
 
         # Mixed newlines
         sql_content = "{% macro test() %}\r\nselect 1\n{% endmacro %}\r\n{% endif %}"
-        _, logs = remove_unmatched_endings(sql_content)
+        logs = remove_unmatched_endings(sql_content).refactor_logs
         assert logs[0] == "Removed unmatched {% endif %} near line 4"
 
     def test_in_comments(self):
@@ -386,19 +386,19 @@ class TestUnmatchedEndingsRemoval:
         sql_content = """-- This is a comment
         -- {% endif %}
         select * from table"""
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% endif %}" not in result
-        assert len(logs) == 1
-        assert "Removed unmatched {% endif %}" in logs[0]
+        result = remove_unmatched_endings(sql_content)
+        assert "{% endif %}" not in result.refactored_content
+        assert len(result.refactor_logs) == 1
+        assert "Removed unmatched {% endif %}" in result.refactor_logs[0]
 
         # Endmacro in comments
         sql_content = """-- This is a comment
         select * from table
         -- {% endmacro %}"""
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% endmacro %}" not in result
-        assert len(logs) == 1
-        assert "Removed unmatched {% endmacro %}" in logs[0]
+        result = remove_unmatched_endings(sql_content)
+        assert "{% endmacro %}" not in result.refactored_content
+        assert len(result.refactor_logs) == 1
+        assert "Removed unmatched {% endmacro %}" in result.refactor_logs[0]
 
     def test_after_other_tags(self):
         # After for loop
@@ -406,19 +406,19 @@ class TestUnmatchedEndingsRemoval:
         select {{ item }} from table
         {% endfor %}
         {% endif %}"""
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% endif %}" not in result
-        assert len(logs) == 1
-        assert "Removed unmatched {% endif %}" in logs[0]
+        result = remove_unmatched_endings(sql_content)
+        assert "{% endif %}" not in result.refactored_content
+        assert len(result.refactor_logs) == 1
+        assert "Removed unmatched {% endif %}" in result.refactor_logs[0]
 
         # After set statement
         sql_content = """{% set x = 5 %}
         select {{ x }} as value
         {% endmacro %}"""
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% endmacro %}" not in result
-        assert len(logs) == 1
-        assert "Removed unmatched {% endmacro %}" in logs[0]
+        result = remove_unmatched_endings(sql_content)
+        assert "{% endmacro %}" not in result.refactored_content
+        assert len(result.refactor_logs) == 1
+        assert "Removed unmatched {% endmacro %}" in result.refactor_logs[0]
 
     def test_multiple_unmatched(self):
         sql_content = """select 1
@@ -426,11 +426,12 @@ class TestUnmatchedEndingsRemoval:
         select 2
         {% endif %}
         select 3"""
-        result, logs = remove_unmatched_endings(sql_content)
-        assert "{% endif %}" not in result
-        assert len(logs) == 2
-        assert logs[0] == "Removed unmatched {% endif %} near line 2"
-        assert logs[1] == "Removed unmatched {% endif %} near line 4"
+        refactor_result = remove_unmatched_endings(sql_content)
+
+        assert "{% endif %}" not in refactor_result.refactored_content
+        assert len(refactor_result.refactor_logs) == 2
+        assert refactor_result.refactor_logs[0] == "Removed unmatched {% endif %} near line 2"
+        assert refactor_result.refactor_logs[1] == "Removed unmatched {% endif %} near line 4"
 
 
 class TestYamlRefactoring:
