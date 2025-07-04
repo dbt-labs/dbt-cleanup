@@ -348,6 +348,7 @@ def process_yaml_files_except_dbt_project(
     schema_specs: SchemaSpecs,
     dry_run: bool = False,
     select: Optional[List[str]] = None,
+    behavior_change: bool = False,
 ) -> List[YMLRefactorResult]:
     """Process all YAML files in the project
 
@@ -357,6 +358,7 @@ def process_yaml_files_except_dbt_project(
         schema_specs: The schema specifications to use
         dry_run: Whether to perform a dry run
         select: Optional list of paths to select
+        behavior_change: Whether to apply only resource name space replacement changes
     """
     yaml_results: List[YMLRefactorResult] = []
 
@@ -379,14 +381,20 @@ def process_yaml_files_except_dbt_project(
             )
 
             # Define the changesets to apply in order
-            changesets = [
-                (changeset_remove_tab_only_lines, None),
-                (changeset_remove_indentation_version, None),
-                (changeset_remove_extra_tabs, None),
-                (changeset_remove_duplicate_keys, None),
-                (changeset_refactor_yml_str, schema_specs),
-                (changeset_owner_properties_yml_str, schema_specs),
-            ]
+            if behavior_change:
+                changesets = [
+                    (changeset_replace_spaces_underscores_in_name_values, schema_specs),
+                ]
+            else:
+                changesets = [
+                    (changeset_remove_tab_only_lines, None),
+                    (changeset_remove_indentation_version, None),
+                    (changeset_remove_extra_tabs, None),
+                    (changeset_remove_duplicate_keys, None),
+                    (changeset_replace_spaces_underscores_in_name_values, schema_specs),
+                    (changeset_refactor_yml_str, schema_specs),
+                    (changeset_owner_properties_yml_str, schema_specs),
+                ]
 
             # Apply each changeset in sequence
             try:
@@ -872,6 +880,49 @@ def changeset_remove_duplicate_keys(yml_str: str) -> YMLRuleRefactorResult:
         refactor_logs=refactor_logs,
     )
 
+def changeset_replace_spaces_underscores_in_name_values(yml_str: str, schema_specs: SchemaSpecs) -> YMLRuleRefactorResult:
+    refactored = False
+    refactor_logs: List[str] = []
+    yml_dict = DbtYAML().load(yml_str) or {}
+
+    for node_type in schema_specs.yaml_specs_per_node_type:
+        if node_type in yml_dict:
+            for i, node in enumerate(yml_dict[node_type]):
+                processed_node, node_refactored, node_refactor_logs = replace_node_name_spaces_with_underscores(
+                    node, node_type
+                )
+                if node_refactored:
+                    refactored = True
+                    yml_dict[node_type][i] = processed_node
+                    refactor_logs.extend(node_refactor_logs)
+
+    refactored_yaml = DbtYAML().dump_to_string(yml_dict) if refactored else yml_str
+
+    return YMLRuleRefactorResult(
+        rule_name="remove_spaces_in_resource_names",
+        dbt_deprecation_classes=["ResourceNamesWithSpacesDeprecation", "ExposureNameDeprecation"],
+        refactored=refactored,
+        refactored_yaml=refactored_yaml,
+        original_yaml=yml_str,
+        refactor_logs=refactor_logs,
+    )
+
+
+def replace_node_name_spaces_with_underscores(node: dict[str, str], node_type: str):
+    node_refactor_logs = []
+    node_copy = node.copy()
+    pretty_node_type = node_type[:-1].title()
+
+    for key, value in node.items():
+        if key == "name" and " " in value:
+            new_value = value.replace(" ", "_")
+            node_copy[key] = new_value
+            node_refactor_logs.append(f"{pretty_node_type} '{node['name']} - Updated 'name' from '{value}' to '{new_value}'.")
+
+    refactored = len(node_refactor_logs) != 0
+
+    return node_copy, refactored, node_refactor_logs
+
 
 def changeset_remove_indentation_version(yml_str: str) -> YMLRuleRefactorResult:
     """Standardizes the format of 'version: 2' in YAML files.
@@ -1142,6 +1193,7 @@ def changeset_all_sql_yml_files(  # noqa: PLR0913
     exclude_dbt_project_keys: bool = False,
     select: Optional[List[str]] = None,
     include_packages: bool = False,
+    behavior_change: bool = False,
 ) -> Tuple[List[YMLRefactorResult], List[SQLRefactorResult]]:
     """Process all YAML files and SQL files in the project
 
@@ -1152,6 +1204,7 @@ def changeset_all_sql_yml_files(  # noqa: PLR0913
         exclude_dbt_project_keys: Whether to exclude dbt project keys
         select: List of paths to select
         include_packages: Whether to include packages in the refactoring
+        behavior_change: Whether to apply only resource name space replacement changes
 
     Returns:
         Tuple containing:
@@ -1164,7 +1217,7 @@ def changeset_all_sql_yml_files(  # noqa: PLR0913
     sql_results = process_sql_files(path, dbt_paths, dry_run, select)
 
     # Process YAML files
-    yaml_results = process_yaml_files_except_dbt_project(path, dbt_paths, schema_specs, dry_run, select)
+    yaml_results = process_yaml_files_except_dbt_project(path, dbt_paths, schema_specs, dry_run, select, behavior_change)
 
     # Process dbt_project.yml
 
