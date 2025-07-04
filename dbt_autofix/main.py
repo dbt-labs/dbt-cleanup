@@ -51,11 +51,14 @@ def refactor_yml(  # noqa: PLR0913
     include_packages: Annotated[
         bool, typer.Option("--include-packages", "-i", help="Include packages in the refactoring")
     ] = False,
+    behavior_change: Annotated[
+        bool, typer.Option("--behavior-change", help="Apply only resource name space replacement changes")
+    ] = False,
 ):
     schema_specs = SchemaSpecs(json_schema_version)
 
     changesets = changeset_all_sql_yml_files(
-        path, schema_specs, dry_run, exclude_dbt_project_keys, select, include_packages
+        path, schema_specs, dry_run, exclude_dbt_project_keys, select, include_packages, behavior_change
     )
     yaml_results, sql_results = changesets
     if dry_run:
